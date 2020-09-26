@@ -14,7 +14,7 @@ resource "hcloud_ssh_key" "anton" {
     "email" : "oxlamons_at_gmail_com"
   }
 }
-# Create a new provider using the SSH key
+
 resource "hcloud_server" "node1" {
   name        = "node1"
   image       = "ubuntu-18.04"
@@ -26,6 +26,30 @@ resource "hcloud_server" "node1" {
     "email" : "oxlamons_at_gmail_com"
   }
 }
+
+# Create a new provider using the SSH key
+provider "aws" {
+  access_key = "${var.access_key}"
+  secret_key = "${var.secret_key}"
+  region     = "${var.aws_region}"
+}
+data "aws_route53_zone" "selected" {
+  name = "devops.rebrain.srwx.net"
+}
+resource "aws_route53_record" "www" {
+  count   = 1
+  zone_id = data.aws_route53_zone.selected.zone_id
+  name    = "oxlamons.${data.aws_route53_zone.selected.name}"
+  type    = "A"
+  ttl     = "300"
+  records = ["${hcloud_server.node1.*.ipv4_address[count.index]}"]
+
+}
 output "server_ip_node1" {
-  value = "hcloud_server.node1.ipv4_address"
+  value = hcloud_server.node1.ipv4_address
+}
+output "server_id_node1" {
+  value       = hcloud_server.node1.id
+  description = "ID"
+
 }
